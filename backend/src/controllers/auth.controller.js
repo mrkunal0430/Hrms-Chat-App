@@ -51,7 +51,6 @@ export const signup = async (req, res) => {
             
             try{
                 await sendWelcomeEmail(newUser.email, newUser.fullName, process.env.CLIENT_URL);
-                console.log("Email sent successfully");
             }catch(error){
                 console.log("Error in sendWelcomeEmail : ",error);
             }
@@ -68,3 +67,51 @@ export const signup = async (req, res) => {
 
 };
 
+
+export const login = async (req, res) => {
+    const {email,password} = req.body;
+
+    if(!email || !password){
+        return res.status(400).json({message:"All fields are required"});
+    }
+
+    try{
+        const user = await User.findOne({email});
+        if(!user){
+            return res.status(400).json({message:"User not found"});
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        if(!isPasswordCorrect){
+            return res.status(400).json({message:"Invalid password"});
+        }
+
+        generateToken(user._id,res);
+
+        res.status(200).json({
+            _id:user._id,
+            fullName:user.fullName,
+            email:user.email,
+            profilePicture:user.profilePicture,
+        });
+
+    }catch(error){
+        console.log("Error in login Controller : ",error);
+        res.status(500).json({message:"Internal Server Error"});
+    }
+};
+
+
+export const logout = async (_, res) => {
+    try{
+        res.cookie("jwt", "", {
+            httpOnly: true,
+            expires: new Date(0),
+        });
+        res.status(200).json({message:"User logged out successfully"});
+    }catch(error){
+        console.log("Error in logout Controller : ",error);
+        res.status(500).json({message:"Internal Server Error"});
+    }
+    
+};
