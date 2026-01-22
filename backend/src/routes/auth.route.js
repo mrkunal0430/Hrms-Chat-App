@@ -6,16 +6,19 @@ import {
   updateProfile,
 } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
+import { authLimiter, protectedLimiter } from "../middleware/rateLimiter.middleware.js";
 
 const router = express.Router();
 
-router.post("/signup", signup);
-router.post("/login", login);
+// Strict rate limiting for auth endpoints (5 requests per 15 min)
+router.post("/signup", authLimiter, signup);
+router.post("/login", authLimiter, login);
 router.post("/logout", logout);
 
-router.put("/update-profile", protectRoute, updateProfile);
+// Protected routes with lenient rate limiting (200 requests per 15 min)
+router.put("/update-profile", protectRoute, protectedLimiter, updateProfile);
 
-router.get("/check", protectRoute, (req, res) => {
+router.get("/check", protectRoute, protectedLimiter, (req, res) => {
   res.status(200).json({ user: req.user });
 });
 
